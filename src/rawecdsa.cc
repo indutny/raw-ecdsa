@@ -14,18 +14,18 @@ namespace rawrsa {
 using namespace node;
 using namespace v8;
 
-class Key : public ObjectWrap {
+class Key : public Nan::ObjectWrap {
  public:
   static void Init(Handle<Object> target) {
-    Local<FunctionTemplate> t = NanNew<FunctionTemplate>(Key::New);
+    Local<FunctionTemplate> t = Nan::New<FunctionTemplate>(Key::New);
 
     t->InstanceTemplate()->SetInternalFieldCount(1);
-    t->SetClassName(NanNew<String>("Key"));
+    t->SetClassName(Nan::New<String>("Key").ToLocalChecked());
 
-    NODE_SET_PROTOTYPE_METHOD(t, "sign", Key::Sign);
-    NODE_SET_PROTOTYPE_METHOD(t, "verify", Key::Verify);
+    Nan::SetPrototypeMethod(t, "sign", Key::Sign);
+    Nan::SetPrototypeMethod(t, "verify", Key::Verify);
 
-    target->Set(NanNew<String>("Key"), t->GetFunction());
+    target->Set(Nan::New<String>("Key").ToLocalChecked(), t->GetFunction());
   }
 
  protected:
@@ -46,16 +46,16 @@ class Key : public ObjectWrap {
   }
 
   static NAN_METHOD(New) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    if (args.Length() != 1 || !Buffer::HasInstance(args[0])) {
-      return NanThrowError("Invalid arguments length, expected "
+    if (info.Length() != 1 || !Buffer::HasInstance(info[0])) {
+      return Nan::ThrowError("Invalid arguments length, expected "
                            "new Key(buffer)");
     }
 
     unsigned char* buf = reinterpret_cast<unsigned char*>(
-        Buffer::Data(args[0]));
-    int buf_len = Buffer::Length(args[0]);
+        Buffer::Data(info[0]));
+    int buf_len = Buffer::Length(info[0]);
 
     EC_KEY* ec;
     EVP_PKEY* evp = NULL;
@@ -85,65 +85,65 @@ class Key : public ObjectWrap {
 
  done:
     if (evp == NULL && ec == NULL)
-      return NanThrowError("Failed to read EVP_PKEY/EC_KEY");
+      return Nan::ThrowError("Failed to read EVP_PKEY/EC_KEY");
 
     Key* k = new Key(evp, ec);
-    k->Wrap(args.This());
+    k->Wrap(info.This());
 
-    NanReturnValue(args.This());
+    info.GetReturnValue().Set(info.This());
   }
 
   static NAN_METHOD(Sign) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    if (args.Length() != 1 ||
-        !Buffer::HasInstance(args[0])) {
-      return NanThrowError("Invalid arguments length, expected (hash)");
+    if (info.Length() != 1 ||
+        !Buffer::HasInstance(info[0])) {
+      return Nan::ThrowError("Invalid arguments length, expected (hash)");
     }
 
-    Key* k = ObjectWrap::Unwrap<Key>(args.This());
+    Key* k = Nan::ObjectWrap::Unwrap<Key>(info.This());
 
     unsigned char* from = reinterpret_cast<unsigned char*>(
-        Buffer::Data(args[0]));
-    int from_len = Buffer::Length(args[0]);
+        Buffer::Data(info[0]));
+    int from_len = Buffer::Length(info[0]);
 
     unsigned int to_len = ECDSA_size(k->ec_);
     unsigned char* to = new unsigned char[to_len];
 
     if (ECDSA_sign(0, from, from_len, to, &to_len, k->ec_) != 1) {
       delete[] to;
-      return NanThrowError("Failed to sign the data");
+      return Nan::ThrowError("Failed to sign the data");
     }
 
-    Local<Value> buf = Buffer::New(reinterpret_cast<char*>(to), to_len);
+    MaybeLocal<Object> buf = Nan::CopyBuffer(reinterpret_cast<char*>(to), to_len);
     delete[] to;
 
-    NanReturnValue(buf);
+    info.GetReturnValue().Set(buf.ToLocalChecked());
   }
 
   static NAN_METHOD(Verify) {
-    NanScope();
+    Nan::HandleScope scope;
 
-    if (args.Length() != 2 ||
-        !Buffer::HasInstance(args[0]) ||
-        !Buffer::HasInstance(args[1])) {
-      return NanThrowError("Invalid arguments length, expected (sig, hash)");
+    if (info.Length() != 2 ||
+        !Buffer::HasInstance(info[0]) ||
+        !Buffer::HasInstance(info[1])) {
+      return Nan::ThrowError("Invalid arguments length, expected (sig, hash)");
     }
 
-    Key* k = ObjectWrap::Unwrap<Key>(args.This());
+    Key* k = Nan::ObjectWrap::Unwrap<Key>(info.This());
 
     unsigned char* sig = reinterpret_cast<unsigned char*>(
-        Buffer::Data(args[0]));
-    int sig_len = Buffer::Length(args[0]);
+        Buffer::Data(info[0]));
+    int sig_len = Buffer::Length(info[0]);
     unsigned char* hash = reinterpret_cast<unsigned char*>(
-        Buffer::Data(args[1]));
-    int hash_len = Buffer::Length(args[1]);
+        Buffer::Data(info[1]));
+    int hash_len = Buffer::Length(info[1]);
 
     int r = ECDSA_verify(0, hash, hash_len, sig, sig_len, k->ec_);
     if (r == -1)
-      return NanThrowError("Failed to decode the signature");
+      return Nan::ThrowError("Failed to decode the signature");
 
-    NanReturnValue(NanNew(r == 1));
+    info.GetReturnValue().Set(Nan::New(r == 1));
   }
 
   EVP_PKEY* evp_;
