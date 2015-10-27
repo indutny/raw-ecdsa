@@ -1,6 +1,6 @@
 {
   "name": "raw-ecdsa",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Raw OpenSSL ECDSA_...() wrapper",
   "main": "index.js",
   "scripts": {
