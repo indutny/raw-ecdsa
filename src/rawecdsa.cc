@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "node.h"
 #include "nan.h"
 #include "node_buffer.h"
@@ -8,6 +10,9 @@
 #include "openssl/pem.h"
 #include "openssl/x509.h"
 #include "v8.h"
+
+static const unsigned char PUBLIC_KEY_PFX[] =  "-----BEGIN PUBLIC KEY-----";
+static const int PUBLIC_KEY_PFX_LEN = sizeof(PUBLIC_KEY_PFX) - 1;
 
 namespace rawrsa {
 
@@ -74,12 +79,15 @@ class Key : public Nan::ObjectWrap {
 
     {
       BIO* bio = BIO_new_mem_buf(buf, buf_len);
-      evp = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
-      if (evp == NULL)
-        ec = PEM_read_bio_EC_PUBKEY(bio, NULL, NULL, NULL);
-      if (evp == NULL && ec == NULL)
-        ec = PEM_read_bio_ECPrivateKey(bio, NULL, NULL, NULL);
-
+      if (memcmp(buf, PUBLIC_KEY_PFX, PUBLIC_KEY_PFX_LEN) == 0) {
+        evp = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+      } else {
+        evp = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
+        if (evp == NULL)
+          ec = PEM_read_bio_EC_PUBKEY(bio, NULL, NULL, NULL);
+        if (evp == NULL && ec == NULL)
+          ec = PEM_read_bio_ECPrivateKey(bio, NULL, NULL, NULL);
+      }
       BIO_free_all(bio);
     }
 
