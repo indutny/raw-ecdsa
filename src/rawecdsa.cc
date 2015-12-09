@@ -9,6 +9,7 @@
 #include "openssl/ecdsa.h"
 #include "openssl/pem.h"
 #include "openssl/x509.h"
+#include "openssl/err.h"
 #include "v8.h"
 
 static const unsigned char PUBLIC_KEY_PFX[] =  "-----BEGIN PUBLIC KEY-----";
@@ -92,6 +93,8 @@ class Key : public Nan::ObjectWrap {
     }
 
  done:
+    while (0 != ERR_get_error()) {
+    }
     if (evp == NULL && ec == NULL)
       return Nan::ThrowError("Failed to read EVP_PKEY/EC_KEY");
 
