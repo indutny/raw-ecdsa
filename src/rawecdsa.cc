@@ -93,8 +93,7 @@ class Key : public Nan::ObjectWrap {
     }
 
  done:
-    while (0 != ERR_get_error()) {
-    }
+    ERR_clear_error();
     if (evp == NULL && ec == NULL)
       return Nan::ThrowError("Failed to read EVP_PKEY/EC_KEY");
 
