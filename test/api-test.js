@@ -39,6 +39,26 @@ describe('public key', function() {
 });
 
 describe('raw-ecdsa', function() {
+  var priv = new ecdsa.Key(key);
+  it('should sign/verify data', function() {
+    var hash = crypto.createHash('sha1').update('hello world').digest();
+    var s = priv.sign(hash);
+    assert(priv.verify(s, hash), 'verify');
+  });
+  it('should sign/verify data 2', function () {
+    var hash2 = crypto.createHash('sha1').update('hello world2').digest();
+    var s2 = priv.sign(hash2);
+    assert(priv.verify(s2, hash2), 'verify 2');
+  });
+  it('should not sign/verify bad data', function () {
+    var hash = crypto.createHash('sha1').update('hello world2').digest();
+    var hash2 = crypto.createHash('sha224').update('hello world2').digest();
+    var s = priv.sign(hash);
+    assert(!priv.verify(s, hash2), 'verify');
+  });
+});
+
+describe('raw-ecdsa', function() {
   it('should sign/verify data', function() {
     var priv = new ecdsa.Key(key);
 
